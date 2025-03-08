@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: ${DATASOURCE_URL:jdbc:postgresql://localhost:5432/users}
+    username: ${DATASOURCE_USERNAME:postgres}
+    password: ${DATASOURCE_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${MAX_POOL_SIZE:10}
+      minimum-idle: ${MIN_POOL_SIZE:2}
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      auto-commit: true
+      pool-name: HikariPool-1
+      initialization-fail-timeout: 1
+      validation-timeout: 5000
+      leak-detection-threshold: 2000
+      register-mbeans: false
+  flyway:
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5432/users}
+    user: ${FLYWAY_USER:postgres}
+    password: ${FLYWAY_PASSWORD:postgres}
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migrations}
+jwt:
+  secret: ${JWT_SECRET:StBcGbJTdXsj5UK38S8hk/fzgXfNCnZyPTzQ5+3ttCw=}
+  issuer: ${JWT_ISSUER:blautech-ecommerce}
+  expiration: 5
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
+    com.zaxxer.hikari: WARN
+    org.hibernate: INFO
+server:
+  port: ${SERVER_PORT:8050}
+eureka:
+  instance:
+    instance-id: ${spring.application.name}:${random.uuid}
