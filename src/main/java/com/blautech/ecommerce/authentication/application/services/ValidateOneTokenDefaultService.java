@@ -6,6 +6,7 @@ import com.blautech.ecommerce.authentication.application.ports.out.UserPersisten
 import com.blautech.ecommerce.authentication.domain.exceptions.UserCredentialsException;
 import com.blautech.ecommerce.authentication.domain.exceptions.UserNotFoundException;
 
+import com.blautech.ecommerce.authentication.domain.models.Token;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -22,11 +23,11 @@ public class ValidateOneTokenDefaultService implements ValidateOneTokenUseCase {
         this.jwtProviderPort = jwtProviderPort;
     }
     @Override
-    public boolean execute(String token) throws UserNotFoundException, UserCredentialsException {
+    public boolean execute(Token token) throws UserNotFoundException, UserCredentialsException {
         if (!this.jwtProviderPort.verifyOneToken(token)) {
             return false;
         }
-        Optional<Long> optionalUserId = this.jwtProviderPort.getClaimFromToken(token, "userId", Long.class);
+        Optional<Long> optionalUserId = this.jwtProviderPort.getClaimFromToken(token.getPayload(), "userId", Long.class);
         return optionalUserId.filter(this.userPersistencePort::existsOneUserById).isPresent();
     }
 }

@@ -3,9 +3,11 @@ package com.blautech.ecommerce.authentication.infrastructure.adapters.in.rest.co
 import com.blautech.ecommerce.authentication.application.ports.in.ValidateOneTokenUseCase;
 import com.blautech.ecommerce.authentication.domain.exceptions.UserCredentialsException;
 import com.blautech.ecommerce.authentication.domain.exceptions.UserNotFoundException;
+import com.blautech.ecommerce.authentication.domain.models.Token;
 import com.blautech.ecommerce.authentication.infrastructure.adapters.in.rest.dtos.CheckResponse;
 import com.blautech.ecommerce.authentication.infrastructure.adapters.in.rest.dtos.TokenRequest;
 import com.blautech.ecommerce.authentication.infrastructure.adapters.in.rest.mappers.CredentialRestMapper;
+import com.blautech.ecommerce.authentication.infrastructure.adapters.in.rest.mappers.TokenRestMapper;
 
 import jakarta.validation.Valid;
 
@@ -26,7 +28,8 @@ public class ValidateTokenRestController {
     public ResponseEntity<CheckResponse> validateOneToken(
         @RequestBody @Valid TokenRequest tokenRequest
     ) throws UserNotFoundException, UserCredentialsException {
-        boolean success = this.validateOneTokenUseCase.execute(tokenRequest.getToken());
+        Token token = TokenRestMapper.tokenRequestToDomain(tokenRequest);
+        boolean success = this.validateOneTokenUseCase.execute(token);
         CheckResponse checkResponse = CredentialRestMapper.domainToCheckResponse(success);
         if (success) {
             return ResponseEntity.ok(checkResponse);

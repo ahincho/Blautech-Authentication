@@ -1,10 +1,13 @@
 package com.blautech.ecommerce.authentication.infrastructure.adapters.out.jwt.io.implementations;
 
 import com.blautech.ecommerce.authentication.application.ports.out.JwtProviderPort;
-import com.blautech.ecommerce.authentication.domain.models.Credential;
-import com.blautech.ecommerce.authentication.domain.models.Role;
-import com.blautech.ecommerce.authentication.domain.models.User;
+import com.blautech.ecommerce.authentication.application.ports.out.PermissionPersistencePort;
+import com.blautech.ecommerce.authentication.domain.models.*;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -19,11 +22,15 @@ import java.security.Key;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 @Component
 public class JwtIoProviderAdapter implements JwtProviderPort {
+    private static final String ROLE_CLAIM = "roles";
+    private final ObjectMapper objectMapper;
+    private final PermissionPersistencePort permissionPersistencePort;
     @Value("${jwt.secret}")
     private String secret;
     @Value("${jwt.issuer}")
@@ -31,6 +38,13 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
     @Value("${jwt.expiration}")
     private Long expiration;
     private Key key;
+    public JwtIoProviderAdapter(
+        ObjectMapper objectMapper,
+        PermissionPersistencePort permissionPersistencePort
+    ) {
+        this.objectMapper = objectMapper;
+        this.permissionPersistencePort = permissionPersistencePort;
+    }
     @PostConstruct
     protected void initialize() {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
@@ -46,7 +60,7 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
             "email", user.getEmail(),
             "address", user.getAddress(),
             "birthday", user.getBirthday().toString(),
-            "roles", user.getRoles().stream().map(Role::getName).toList(),
+            ROLE_CLAIM, user.getRoles().stream().map(Role::getName).toList(),
             "issuedAt", issuedAt.toString(),
             "expiresAt", expiresAt.toString()
         );
@@ -61,17 +75,34 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
         return createFromToken(user.getId(), user.getEmail(), jwtToken, issuedAt, expiresAt);
     }
     @Override
-    public boolean verifyOneToken(String token) {
+    public boolean verifyOneToken(Token token) {
         try {
             Jwts.parser()
                 .verifyWith((SecretKey) this.key)
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(token.getPayload())
                 .getPayload();
-            return true;
         } catch (Exception exception) {
             return false;
         }
+        Optional<List<String>> roles = this.getClaimFromToken(token.getPayload(), ROLE_CLAIM, new TypeReference<>() {});
+        if (roles.isEmpty()) {
+            return false;
+        }
+        System.out.println("Roles: " + roles.get());
+        Route route = Route.builder()
+            .path(token.getPermission().getRoute().getPath())
+            .method(token.getPermission().getRoute().getMethod())
+            .build();
+        return roles.get().stream().anyMatch(role -> {
+            Permission permission = Permission.builder()
+                .role(role)
+                .route(route)
+                .build();
+            boolean check = this.permissionPersistencePort.existsOnePermission(permission);
+            System.out.println("Role: " + role + " permission: " + permission + " check: " + check);
+            return check;
+        });
     }
     @Override
     public <T> Optional<T> getClaimFromToken(String token, String claimKey, Class<T> claimType) {
@@ -83,6 +114,20 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
                 .getPayload()
                 .get(claimKey, claimType);
             return Optional.ofNullable(claim);
+        } catch (Exception exception) {
+            return Optional.empty();
+        }
+    }
+    protected <T> Optional<T> getClaimFromToken(String token, String claimKey, TypeReference<T> typeReference) {
+        try {
+            Object claim = Jwts.parser()
+                .verifyWith((SecretKey) this.key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get(claimKey);
+            T result = this.objectMapper.convertValue(claim, typeReference);
+            return Optional.ofNullable(result);
         } catch (Exception exception) {
             return Optional.empty();
         }
