@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: authentication-microservice
+  profiles:
+    active: ${SPRING_PROFILE:dev}
