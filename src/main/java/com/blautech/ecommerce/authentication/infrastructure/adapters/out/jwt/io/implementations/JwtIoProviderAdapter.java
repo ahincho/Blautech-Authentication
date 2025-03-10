@@ -7,7 +7,6 @@ import com.blautech.ecommerce.authentication.domain.models.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -21,6 +20,7 @@ import javax.crypto.SecretKey;
 import java.security.Key;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -61,8 +61,8 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
             "address", user.getAddress(),
             "birthday", user.getBirthday().toString(),
             ROLE_CLAIM, user.getRoles().stream().map(Role::getName).toList(),
-            "issuedAt", issuedAt.toString(),
-            "expiresAt", expiresAt.toString()
+            "issuedAt", convertToLocalDateTime(issuedAt).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+            "expiresAt", convertToLocalDateTime(expiresAt).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
         );
         String jwtToken = Jwts.builder()
             .issuer(this.issuer)
@@ -89,7 +89,6 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
         if (roles.isEmpty()) {
             return false;
         }
-        System.out.println("Roles: " + roles.get());
         Route route = Route.builder()
             .path(token.getPermission().getRoute().getPath())
             .method(token.getPermission().getRoute().getMethod())
@@ -99,9 +98,7 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
                 .role(role)
                 .route(route)
                 .build();
-            boolean check = this.permissionPersistencePort.existsOnePermission(permission);
-            System.out.println("Role: " + role + " permission: " + permission + " check: " + check);
-            return check;
+            return this.permissionPersistencePort.existsOnePermission(permission);
         });
     }
     @Override

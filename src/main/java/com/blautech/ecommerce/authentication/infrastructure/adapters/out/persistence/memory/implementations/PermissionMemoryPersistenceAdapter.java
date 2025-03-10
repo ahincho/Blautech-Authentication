@@ -23,13 +23,21 @@ public class PermissionMemoryPersistenceAdapter implements PermissionPersistence
     }
     protected Set<Permission> initializePermissions() {
         // Roles
+        String publicRole = "Public";
         String customerRole = "Customer";
         String administratorRole = "Administrator";
         // Paths
+        String categoriesPath = "/api/v1/categories";
         String productsPath = "/api/v1/products";
+        String usersPath = "/api/v1/users";
+        String ordersPath = "/api/v1/orders";
+        String authPath = "/api/v1/auth";
         // Methods
         String postMethod = HttpMethod.POST.name();
         String getMethod = HttpMethod.GET.name();
+        String putMethod = HttpMethod.PUT.name();
+        String patchMethod = HttpMethod.PATCH.name();
+        String deleteMethod = HttpMethod.DELETE.name();
         // Routes
         Route createOneProductRoute = PermissionMemoryMapper.createOneRoute(productsPath, postMethod);
         Route findProductsRoute = PermissionMemoryMapper.createOneRoute(productsPath, getMethod);
