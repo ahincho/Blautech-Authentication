@@ -29,7 +29,9 @@ public class ValidateTokenRestController {
         @RequestBody @Valid TokenRequest tokenRequest
     ) throws UserNotFoundException, UserCredentialsException {
         Token token = TokenRestMapper.tokenRequestToDomain(tokenRequest);
+        System.out.println(token);
         boolean success = this.validateOneTokenUseCase.execute(token);
+        System.out.println("Success: " + success);
         CheckResponse checkResponse = CredentialRestMapper.domainToCheckResponse(success);
         if (success) {
             return ResponseEntity.ok(checkResponse);

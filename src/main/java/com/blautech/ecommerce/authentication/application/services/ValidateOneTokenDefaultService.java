@@ -24,10 +24,9 @@ public class ValidateOneTokenDefaultService implements ValidateOneTokenUseCase {
     }
     @Override
     public boolean execute(Token token) throws UserNotFoundException, UserCredentialsException {
-        if (!this.jwtProviderPort.verifyOneToken(token)) {
-            return false;
-        }
-        Optional<Long> optionalUserId = this.jwtProviderPort.getClaimFromToken(token.getPayload(), "userId", Long.class);
-        return optionalUserId.filter(this.userPersistencePort::existsOneUserById).isPresent();
+        System.out.println("Token on service: " + token);
+        boolean verifyOneToken = this.jwtProviderPort.verifyOneToken(token);
+        System.out.println("Verify one token: " + verifyOneToken);
+        return verifyOneToken;
     }
 }

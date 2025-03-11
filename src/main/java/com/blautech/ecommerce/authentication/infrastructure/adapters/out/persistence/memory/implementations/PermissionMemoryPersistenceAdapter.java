@@ -9,43 +9,61 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Repository;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Repository
 public class PermissionMemoryPersistenceAdapter implements PermissionPersistencePort {
-    private final Set<Permission> permissions;
+    private Set<Route> publicRoutes = new HashSet<>();
+    private final Set<Permission> permissions = new HashSet<>();
     public PermissionMemoryPersistenceAdapter() {
-        this.permissions = initializePermissions();
+        initializePublicRoutes();
+        initializePermissions();
+        System.out.println("=== Public Routes ===");
+        publicRoutes.forEach(route -> System.out.println("Route: " + route));
+        System.out.println("=== Permissions ===");
+        permissions.forEach(permission -> System.out.println("Permission: " + permission.getRole() + ", Route: " + permission.getRoute()));
     }
     @Override
     public boolean existsOnePermission(Permission permission) {
-        return this.permissions.contains(permission);
+        return publicRoutes.contains(permission.getRoute()) || permissions.contains(permission);
     }
-    protected Set<Permission> initializePermissions() {
-        // Roles
-        String publicRole = "Public";
-        String customerRole = "Customer";
-        String administratorRole = "Administrator";
-        // Paths
-        String categoriesPath = "/api/v1/categories";
-        String productsPath = "/api/v1/products";
-        String usersPath = "/api/v1/users";
-        String ordersPath = "/api/v1/orders";
-        String authPath = "/api/v1/auth";
-        // Methods
-        String postMethod = HttpMethod.POST.name();
-        String getMethod = HttpMethod.GET.name();
-        String putMethod = HttpMethod.PUT.name();
-        String patchMethod = HttpMethod.PATCH.name();
-        String deleteMethod = HttpMethod.DELETE.name();
-        // Routes
-        Route createOneProductRoute = PermissionMemoryMapper.createOneRoute(productsPath, postMethod);
-        Route findProductsRoute = PermissionMemoryMapper.createOneRoute(productsPath, getMethod);
-        // Permissions
-        Set<Permission> defaultPermissions = new HashSet<>();
-        defaultPermissions.add(PermissionMemoryMapper.create(administratorRole, createOneProductRoute));
-        defaultPermissions.add(PermissionMemoryMapper.create(administratorRole, findProductsRoute));
-        defaultPermissions.add(PermissionMemoryMapper.create(customerRole, findProductsRoute));
-        return defaultPermissions;
+    private void initializePublicRoutes() {
+        publicRoutes = Set.of(
+            createRoute(ApiPaths.CATEGORIES, HttpMethod.GET),
+            createRoute(ApiPaths.PRODUCTS, HttpMethod.GET),
+            createRoute(ApiPaths.PRODUCTS_IDS, HttpMethod.POST),
+            createRoute(ApiPaths.ORDERS, HttpMethod.GET)
+        );
+    }
+    private void initializePermissions() {
+        // Administrador
+        addPermissions(permissions, UserRole.ADMINISTRATOR, ApiPaths.CATEGORIES, List.of(HttpMethod.GET));
+        addPermissions(permissions, UserRole.ADMINISTRATOR, ApiPaths.PRODUCTS, List.of(HttpMethod.POST, HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE));
+        addPermissions(permissions, UserRole.ADMINISTRATOR, ApiPaths.PRODUCTS_IDS, List.of(HttpMethod.POST));
+        addPermissions(permissions, UserRole.ADMINISTRATOR, ApiPaths.USERS, List.of(HttpMethod.POST, HttpMethod.GET, HttpMethod.PUT, HttpMethod.DELETE));
+        addPermissions(permissions, UserRole.ADMINISTRATOR, ApiPaths.ORDERS, List.of(HttpMethod.POST, HttpMethod.GET));
+        // Cliente
+        addPermissions(permissions, UserRole.CUSTOMER, ApiPaths.PRODUCTS, List.of(HttpMethod.GET, HttpMethod.PUT));
+        addPermissions(permissions, UserRole.CUSTOMER, ApiPaths.PRODUCTS_IDS, List.of(HttpMethod.PUT));
+        addPermissions(permissions, UserRole.CUSTOMER, ApiPaths.ORDERS, List.of(HttpMethod.GET));
+    }
+    private void addPermissions(Set<Permission> permissions, UserRole role, String path, List<HttpMethod> httpMethods) {
+        for (HttpMethod httpMethod : httpMethods) {
+            permissions.add(PermissionMemoryMapper.create(role.name(), createRoute(path, httpMethod)));
+        }
+    }
+    private Route createRoute(String path, HttpMethod method) {
+        return PermissionMemoryMapper.createOneRoute(path, method.name());
+    }
+    private static class ApiPaths {
+        public static final String CATEGORIES = "/api/v1/categories";
+        public static final String PRODUCTS = "/api/v1/products";
+        public static final String PRODUCTS_IDS = "/api/v1/products/ids";
+        public static final String USERS = "/api/v1/users";
+        public static final String ORDERS = "/api/v1/orders";
+    }
+    private enum UserRole {
+        CUSTOMER, ADMINISTRATOR
     }
 }

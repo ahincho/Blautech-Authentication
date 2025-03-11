@@ -76,6 +76,11 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
     }
     @Override
     public boolean verifyOneToken(Token token) {
+        System.out.println("JWT IO Provider Adapter");
+        if (token.getPayload() == null) {
+            System.out.println("Token is null");
+            return this.permissionPersistencePort.existsOnePermission(token.getPermission());
+        }
         try {
             Jwts.parser()
                 .verifyWith((SecretKey) this.key)
@@ -95,7 +100,7 @@ public class JwtIoProviderAdapter implements JwtProviderPort {
             .build();
         return roles.get().stream().anyMatch(role -> {
             Permission permission = Permission.builder()
-                .role(role)
+                .role(role.toUpperCase())
                 .route(route)
                 .build();
             return this.permissionPersistencePort.existsOnePermission(permission);
