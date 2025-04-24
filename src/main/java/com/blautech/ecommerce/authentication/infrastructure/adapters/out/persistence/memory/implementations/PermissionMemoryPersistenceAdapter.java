@@ -33,7 +33,8 @@ public class PermissionMemoryPersistenceAdapter implements PermissionPersistence
             createRoute(ApiPaths.CATEGORIES, HttpMethod.GET),
             createRoute(ApiPaths.PRODUCTS, HttpMethod.GET),
             createRoute(ApiPaths.PRODUCTS_IDS, HttpMethod.POST),
-            createRoute(ApiPaths.ORDERS, HttpMethod.GET)
+            createRoute(ApiPaths.ORDERS, HttpMethod.GET),
+            createRoute(ApiPaths.ORDERS, HttpMethod.POST)
         );
     }
     private void initializePermissions() {
